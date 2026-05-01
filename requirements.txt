@@ -4,5 +4,10 @@ numpy
 matplotlib
 seaborn
 scikit-learn
-Pytorch
+torch
+joblib
+scipy
+pydantic
+pytest
+shap
 Groq

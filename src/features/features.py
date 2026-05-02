@@ -47,8 +47,8 @@ def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-    def drop_highly_correlated_features(df: pd.DataFrame) -> pd.DataFrame:
-        """Drop pre-identified highly correlated features."""
-        df = df.copy()
-        to_drop = ["YearBuilt", "GarageArea", "GrLivArea"]
-        return df.drop(columns=[col for col in to_drop if col in df.columns])
+def drop_highly_correlated_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop pre-identified highly correlated features."""
+    df = df.copy()
+    to_drop = ["YearBuilt", "GarageArea", "GrLivArea"]
+    return df.drop(columns=[col for col in to_drop if col in df.columns])

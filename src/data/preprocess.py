@@ -25,6 +25,9 @@ def _fill_base_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     """Apply shared missing-value rules used for both train and test."""
     df = df.copy()
 
+    if "Id" in df.columns:
+        df = df.drop(columns=["Id"])
+
     if "LotFrontage" in df.columns:
         df["LotFrontage"] = df["LotFrontage"].fillna(df["LotFrontage"].median())
 

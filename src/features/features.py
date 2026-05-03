@@ -52,3 +52,53 @@ def drop_highly_correlated_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     to_drop = ["YearBuilt", "GarageArea", "GrLivArea"]
     return df.drop(columns=[col for col in to_drop if col in df.columns])
+
+
+def encode_categorical_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Encode ordinal and nominal categorical features into numeric columns.
+
+    Ordinal features are mapped to ordered integer codes. Nominal features are
+    one-hot encoded. Missing columns are skipped.
+    """
+    df = df.copy()
+
+    ordinal_categories = {
+        "ExterQual": ["Po", "Fa", "TA", "Gd", "Ex"],
+        "ExterCond": ["Po", "Fa", "TA", "Gd", "Ex"],
+        "BsmtQual": ["Po", "Fa", "TA", "Gd", "Ex"],
+        "BsmtCond": ["Po", "Fa", "TA", "Gd", "Ex"],
+        "HeatingQC": ["Po", "Fa", "TA", "Gd", "Ex"],
+        "KitchenQual": ["Po", "Fa", "TA", "Gd", "Ex"],
+        "FireplaceQu": ["Po", "Fa", "TA", "Gd", "Ex"],
+        "GarageQual": ["Po", "Fa", "TA", "Gd", "Ex"],
+        "GarageCond": ["Po", "Fa", "TA", "Gd", "Ex"],
+        "PoolQC": ["Fa", "TA", "Gd", "Ex"],
+        "BsmtExposure": ["No", "Mn", "Av", "Gd"],
+        "BsmtFinType1": ["Unf", "LwQ", "Rec", "BLQ", "ALQ", "GLQ"],
+        "BsmtFinType2": ["Unf", "LwQ", "Rec", "BLQ", "ALQ", "GLQ"],
+        "Functional": ["Sal", "Sev", "Maj2", "Maj1", "Mod", "Min2", "Min1", "Typ"],
+        "GarageFinish": ["Unf", "RFn", "Fin"],
+        "Fence": ["MnWw", "GdWo", "MnPrv", "GdPrv"],
+        "LotShape": ["IR3", "IR2", "IR1", "Reg"],
+        "Utilities": ["ELO", "NoSeWa", "NoSewr", "AllPub"],
+        "LandSlope": ["Sev", "Mod", "Gtl"],
+        "PavedDrive": ["N", "P", "Y"],
+    }
+
+    ordinal_cols = [col for col in ordinal_categories if col in df.columns]
+    for col in ordinal_cols:
+        categories = ordinal_categories[col]
+        cat = pd.Categorical(df[col], categories=categories, ordered=True)
+        # df[col] = cat.codes.replace(-1, np.nan)
+        df[col] = np.where(cat.codes == -1, np.nan, cat.codes)
+    categorical_cols = [
+        col
+        for col in df.columns
+        if df[col].dtype == "object" or pd.api.types.is_string_dtype(df[col])
+    ]
+    nominal_cols = [col for col in categorical_cols if col not in ordinal_cols]
+
+    if nominal_cols:
+        df = pd.get_dummies(df, columns=nominal_cols, drop_first=False)
+
+    return df

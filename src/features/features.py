@@ -102,3 +102,17 @@ def encode_categorical_features(df: pd.DataFrame) -> pd.DataFrame:
         df = pd.get_dummies(df, columns=nominal_cols, drop_first=False)
 
     return df
+
+
+def add_log_transformed_features(
+    df: pd.DataFrame, columns: list[str]
+) -> pd.DataFrame:
+    """Add log1p-transformed versions of selected numeric columns.
+
+    Skips missing or non-numeric columns.
+    """
+    df = df.copy()
+    for col in columns:
+        if col in df.columns and pd.api.types.is_numeric_dtype(df[col]):
+            df[f"{col}_log"] = np.log1p(df[col])
+    return df

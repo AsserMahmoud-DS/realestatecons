@@ -13,3 +13,4 @@ shap
 Groq
 ipykernel
 statsmodels
+xgboost

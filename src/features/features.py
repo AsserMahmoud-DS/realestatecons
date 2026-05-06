@@ -107,12 +107,22 @@ def encode_categorical_features(df: pd.DataFrame) -> pd.DataFrame:
 def add_log_transformed_features(
     df: pd.DataFrame, columns: list[str]
 ) -> pd.DataFrame:
-    """Add log1p-transformed versions of selected numeric columns.
+    """Add log1p-transformed versions of selected numeric columns and drop originals.
 
-    Skips missing or non-numeric columns.
+    Skips missing or non-numeric columns. If a column has values <= -1, it is
+    shifted up before log1p so the transform remains valid.
     """
     df = df.copy()
+    transformed_originals: list[str] = []
     for col in columns:
         if col in df.columns and pd.api.types.is_numeric_dtype(df[col]):
-            df[f"{col}_log"] = np.log1p(df[col])
+            series = df[col].astype(float)
+            min_value = series.min()
+            if pd.notna(min_value) and min_value <= -1.0:
+                shift = abs(min_value) + 1.0
+                series = series + shift
+            df[f"{col}_log"] = np.log1p(series)
+            transformed_originals.append(col)
+    if transformed_originals:
+        df = df.drop(columns=transformed_originals)
     return df

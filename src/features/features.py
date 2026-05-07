@@ -126,3 +126,69 @@ def add_log_transformed_features(
     if transformed_originals:
         df = df.drop(columns=transformed_originals)
     return df
+
+
+def drop_iqr_outliers_for_low_rate_columns(
+    df: pd.DataFrame,
+    *,
+    target_col: str = "SalePrice",
+    outlier_rate_threshold_pct: float = 10.0,
+) -> pd.DataFrame:
+    """Drop rows with IQR outliers from columns whose outlier rate is below threshold.
+
+    This mirrors the rule used in the EDA features notebook:
+    1. For each numeric feature (excluding ``target_col``), compute IQR outliers.
+    2. Keep only columns where outlier percentage is strictly less than
+       ``outlier_rate_threshold_pct``.
+    3. Drop any row that is an outlier in at least one of those selected columns.
+    """
+    cleaned_df = df.copy()
+
+    numeric_cols = cleaned_df.select_dtypes(include=[np.number]).columns.tolist()
+    numeric_cols = [col for col in numeric_cols if col != target_col]
+
+    outlier_summary: list[dict[str, float | str]] = []
+    for col in numeric_cols:
+        q1 = cleaned_df[col].quantile(0.25)
+        q3 = cleaned_df[col].quantile(0.75)
+        iqr = q3 - q1
+        if iqr == 0:
+            continue
+
+        lower = q1 - 1.5 * iqr
+        upper = q3 + 1.5 * iqr
+        outlier_mask = (cleaned_df[col] < lower) | (cleaned_df[col] > upper)
+        outlier_count = int(outlier_mask.sum())
+
+        if outlier_count > 0:
+            outlier_summary.append(
+                {
+                    "feature": col,
+                    "outlier_pct": 100 * outlier_count / len(cleaned_df),
+                }
+            )
+
+    if not outlier_summary:
+        return cleaned_df
+
+    outlier_summary_df = pd.DataFrame(outlier_summary)
+    drop_candidate_cols = outlier_summary_df.loc[
+        outlier_summary_df["outlier_pct"] < outlier_rate_threshold_pct, "feature"
+    ].tolist()
+
+    if not drop_candidate_cols:
+        return cleaned_df
+
+    rows_to_drop_mask = pd.Series(False, index=cleaned_df.index)
+    for col in drop_candidate_cols:
+        q1 = cleaned_df[col].quantile(0.25)
+        q3 = cleaned_df[col].quantile(0.75)
+        iqr = q3 - q1
+        if iqr == 0:
+            continue
+
+        lower = q1 - 1.5 * iqr
+        upper = q3 + 1.5 * iqr
+        rows_to_drop_mask |= (cleaned_df[col] < lower) | (cleaned_df[col] > upper)
+
+    return cleaned_df.loc[~rows_to_drop_mask].copy()
